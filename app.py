@@ -5,10 +5,34 @@ from dotenv import load_dotenv
 import subprocess
 from openai import OpenAI
 import logging
+import re
 
 logging.basicConfig(level=logging.DEBUG)
 
 load_dotenv()
+
+
+def extract_code(response_text):
+    # Split the response into lines
+    lines = response_text.split('\n')
+
+    # Variables to track if we're inside a code block
+    inside_code_block = False
+    code_lines = []
+
+    # Iterate over each line and filter out non-code content
+    for line in lines:
+        # Detect code fences and toggle the inside_code_block flag
+        if '```' in line:
+            inside_code_block = not inside_code_block
+            continue  # Skip the code fence line itself
+
+        # If we're inside a code block, collect the code lines
+        if inside_code_block:
+            code_lines.append(line)
+
+    # Join the valid code lines back together
+    return '\n'.join(code_lines)
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # Required for session management
@@ -36,7 +60,7 @@ def generate_code():
     session['chat_history'].append({"role": "user", "content": user_input})
 
     # Prepare the chat messages with history
-    messages = [{"role": "system", "content": "You are an expert Arduino programmer."}]
+    messages = [{"role": "system", "content": "You are an expert Arduino programmer. Only return valid and complete Arduino code, without any explanations or comments."}]
     messages += session['chat_history']
 
     try:
@@ -51,12 +75,16 @@ def generate_code():
         # Get the chatbot's response
         code_response = response.choices[0].message.content.strip()
 
-        # Append the chatbot's response to the chat history
-        session['chat_history'].append({"role": "assistant", "content": code_response})
+        # Post-process the response to extract only the code
+        extracted_code = extract_code(code_response)
 
-        return jsonify({'code': code_response})
+        # Append the chatbot's response to the chat history
+        session['chat_history'].append({"role": "assistant", "content": extracted_code})
+
+        return jsonify({'code': extracted_code})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/get_serial_ports', methods=['GET'])
 def get_serial_ports():
