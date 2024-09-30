@@ -10,18 +10,31 @@
 <body>
 <div class="container mt-5">
     <h1 class="text-center">Arduino Code Chatbot</h1>
+
+    <!-- Chat log to display the conversation -->
+    <div id="chat_log" class="mt-4" style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; height: 300px; overflow-y: scroll;">
+        <!-- Chat messages will be appended here -->
+    </div>
+
     <div class="chatbox mt-4">
         <textarea id="user_input" class="form-control" rows="3" placeholder="Enter your instructions..."></textarea>
         <button id="generate_btn" class="btn btn-primary mt-2">Generate Code</button>
+        <button id="reset_btn" class="btn btn-warning mt-2">Reset Chat</button>
     </div>
-    <div id="code_output" class="mt-4">
+
+    <!-- Code output section -->
+    <div id="code_output" class="mt-4" style="background-color: #e9ecef; padding: 20px; border-radius: 5px; white-space: pre-wrap; font-family: monospace;">
         <!-- Generated code will appear here -->
     </div>
+
+    <!-- Serial port selection and upload -->
     <div class="mt-4">
         <label for="serial_ports">Select Serial Port:</label>
         <select id="serial_ports" class="form-control"></select>
         <button id="upload_btn" class="btn btn-success mt-2">Compile & Upload Code</button>
     </div>
+
+    <!-- Upload status -->
     <div id="upload_status" class="mt-4">
         <!-- Upload status will appear here -->
     </div>
@@ -40,6 +53,13 @@ $(document).ready(function() {
             alert('Please enter your instructions.');
             return;
         }
+
+        // Append user message to the chat log
+        $('#chat_log').append('<div><strong>You:</strong> ' + user_input + '</div>');
+
+        // Clear the user input
+        $('#user_input').val('');
+
         $('#code_output').text('Generating code...');
         $.ajax({
             url: '/generate_code',
@@ -47,10 +67,25 @@ $(document).ready(function() {
             contentType: 'application/json',
             data: JSON.stringify({ 'user_input': user_input }),
             success: function(response) {
+                // Append the assistant's response to the chat log
+                $('#chat_log').append('<div><strong>Bot:</strong> ' + response.code + '</div>');
+
+                // Display the generated code in the code output section
                 $('#code_output').text(response.code);
             },
             error: function() {
                 $('#code_output').text('Error generating code.');
+            }
+        });
+    });
+
+    // Reset chat button click
+    $('#reset_btn').click(function() {
+        $.post('/reset_chat', function(response) {
+            if (response.status === 'success') {
+                alert('Chat history cleared. Starting a new conversation.');
+                $('#chat_log').empty();  // Clear the chat log on reset
+                $('#code_output').text('');  // Clear the code output as well
             }
         });
     });
@@ -108,7 +143,6 @@ $(document).ready(function() {
         });
     });
 });
-
 </script>
 </body>
 </html>

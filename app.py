@@ -1,54 +1,76 @@
 import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 import serial.tools.list_ports
 from dotenv import load_dotenv
 import subprocess
 from openai import OpenAI
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = 'supersecretkey'  # Required for session management
 
 # Initialize the OpenAI client
 client = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY"),
 )
 
+# Route for the homepage
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# Route for generating code with continuous conversation
 @app.route('/generate_code', methods=['POST'])
 def generate_code():
     user_input = request.json.get('user_input')
-    messages = [
-        {
-            "role": "system",
-            "content": "You are an expert Arduino programmer."
-        },
-        {
-            "role": "user",
-            "content": f"Generate Arduino code for an ESP32C3 based on the following instructions:\n{user_input}\n\nPlease provide only the code without additional explanations."
-        }
-    ]
+
+    # Initialize chat history in session if not present
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+
+    # Append the user's message to the chat history
+    session['chat_history'].append({"role": "user", "content": user_input})
+
+    # Prepare the chat messages with history
+    messages = [{"role": "system", "content": "You are an expert Arduino programmer."}]
+    messages += session['chat_history']
+
     try:
+        # Send the chat history to OpenAI to generate or update the code
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
             max_tokens=500,
             temperature=0.5,
         )
-        code = response.choices[0].message.content.strip()
-        return jsonify({'code': code})
+
+        # Get the chatbot's response
+        code_response = response.choices[0].message.content.strip()
+
+        # Append the chatbot's response to the chat history
+        session['chat_history'].append({"role": "assistant", "content": code_response})
+
+        return jsonify({'code': code_response})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/get_serial_ports', methods=['GET'])
 def get_serial_ports():
-    ports = serial.tools.list_ports.comports()
-    port_list = [{'device': port.device, 'description': port.description} for port in ports]
-    return jsonify(port_list)
+    try:
+        logging.debug("Attempting to fetch serial ports.")
+        ports = serial.tools.list_ports.comports()
+        port_list = [{'device': port.device, 'description': port.description} for port in ports]
+        logging.debug(f"Found ports: {port_list}")
+        return jsonify(port_list)
+    except Exception as e:
+        logging.error(f"Error fetching serial ports: {str(e)}")
+        return jsonify({'error': f'Error fetching serial ports: {str(e)}'}), 500
 
+# Route for uploading code (no change needed here)
 @app.route('/upload_code', methods=['POST'])
 def upload_code():
     code = request.json.get('code')
@@ -56,14 +78,26 @@ def upload_code():
     if not code or not port:
         return jsonify({'status': 'error', 'message': 'Code or port not provided.'}), 400
 
-    # Save the code to a file
-    code_file = 'generated_code.ino'
+    # Define the sketch name
+    SKETCH_NAME = 'generated_code'
+
+    # Define the sketch directory path
+    sketch_dir = os.path.join(os.getcwd(), SKETCH_NAME)
+
+    # Create the directory if it doesn't exist
+    if not os.path.exists(sketch_dir):
+        os.makedirs(sketch_dir)
+
+    # Save the code to a file inside the sketch directory
+    code_file = os.path.join(sketch_dir, f'{SKETCH_NAME}.ino')
     with open(code_file, 'w') as f:
         f.write(code)
 
     # Compile and upload the code using Arduino CLI
-    compile_command = f'arduino-cli compile --fqbn deneyap:esp32:deneyapmini {code_file}'
-    upload_command = f'arduino-cli upload -p {port} --fqbn deneyap:esp32:deneyapmini {code_file}'
+    FQBN = 'deneyap:esp32:dyg_mpv10'  # Correct FQBN for your Deneyap board
+    compile_command = f'arduino-cli compile --fqbn {FQBN} "{sketch_dir}"'
+    upload_command = f'arduino-cli upload -p {port} --fqbn {FQBN} "{sketch_dir}"'
+
     try:
         # Compile the code
         compile_output = subprocess.check_output(compile_command, shell=True, stderr=subprocess.STDOUT)
@@ -73,6 +107,12 @@ def upload_code():
     except subprocess.CalledProcessError as e:
         error_message = e.output.decode()
         return jsonify({'status': 'error', 'message': error_message}), 500
+
+# Route to reset the chat history (for starting over)
+@app.route('/reset_chat', methods=['POST'])
+def reset_chat():
+    session.pop('chat_history', None)
+    return jsonify({'status': 'success', 'message': 'Chat history cleared.'})
 
 if __name__ == '__main__':
     app.run(debug=True)
