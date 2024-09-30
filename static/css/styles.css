@@ -1,0 +1,17 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.chatbox {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+}
+
+#code_output {
+    background-color: #e9ecef;
+    padding: 20px;
+    border-radius: 5px;
+    white-space: pre-wrap;
+    font-family: monospace;
+}

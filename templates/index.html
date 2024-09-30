@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Arduino Code Chatbot</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<div class="container mt-5">
+    <h1 class="text-center">Arduino Code Chatbot</h1>
+    <div class="chatbox mt-4">
+        <textarea id="user_input" class="form-control" rows="3" placeholder="Enter your instructions..."></textarea>
+        <button id="generate_btn" class="btn btn-primary mt-2">Generate Code</button>
+    </div>
+    <div id="code_output" class="mt-4">
+        <!-- Generated code will appear here -->
+    </div>
+    <div class="mt-4">
+        <label for="serial_ports">Select Serial Port:</label>
+        <select id="serial_ports" class="form-control"></select>
+        <button id="upload_btn" class="btn btn-success mt-2">Compile & Upload Code</button>
+    </div>
+    <div id="upload_status" class="mt-4">
+        <!-- Upload status will appear here -->
+    </div>
+</div>
+
+<!-- jQuery and Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Generate code button click
+    $('#generate_btn').click(function() {
+        let user_input = $('#user_input').val();
+        if (!user_input) {
+            alert('Please enter your instructions.');
+            return;
+        }
+        $('#code_output').text('Generating code...');
+        $.ajax({
+            url: '/generate_code',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ 'user_input': user_input }),
+            success: function(response) {
+                $('#code_output').text(response.code);
+            },
+            error: function() {
+                $('#code_output').text('Error generating code.');
+            }
+        });
+    });
+
+    // Get available serial ports on page load
+    $.ajax({
+        url: '/get_serial_ports',
+        type: 'GET',
+        success: function(ports) {
+            let serial_ports = $('#serial_ports');
+            let best_port = null;
+            ports.forEach(function(port) {
+                serial_ports.append(new Option(port.description + ' (' + port.device + ')', port.device));
+                if (port.description.includes('USB') || port.description.includes('Serial')) {
+                    best_port = port.device;
+                }
+            });
+            if (best_port) {
+                $('#serial_ports').val(best_port);
+            }
+        },
+        error: function() {
+            alert('Error fetching serial ports.');
+        }
+    });
+
+    // Upload code button click
+    $('#upload_btn').click(function() {
+        let code = $('#code_output').text();
+        let port = $('#serial_ports').val();
+        if (!code || code === 'Generating code...' || code === 'Error generating code.') {
+            alert('No valid code to upload. Please generate code first.');
+            return;
+        }
+        if (!port) {
+            alert('Please select a serial port.');
+            return;
+        }
+        $('#upload_status').text('Uploading code...');
+        $.ajax({
+            url: '/upload_code',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ 'code': code, 'port': port }),
+            success: function(response) {
+                $('#upload_status').text(response.message);
+            },
+            error: function(xhr) {
+                let errorMsg = 'Error uploading code.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg += '\n' + xhr.responseJSON.message;
+                }
+                $('#upload_status').text(errorMsg);
+            }
+        });
+    });
+});
+
+</script>
+</body>
+</html>
