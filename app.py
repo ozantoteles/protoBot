@@ -11,6 +11,8 @@ logging.basicConfig(level=logging.DEBUG)
 
 load_dotenv()
 
+# Full path to arduino-cli executable
+ARDUINO_CLI_PATH = 'arduino-cli'  # Update if needed
 
 def extract_code(response_text):
     # Split the response into lines
@@ -142,5 +144,48 @@ def reset_chat():
     session.pop('chat_history', None)
     return jsonify({'status': 'success', 'message': 'Chat history cleared.'})
 
+@app.route('/perform_action', methods=['POST'])
+def perform_action():
+    data = request.json
+    code = data.get('code')
+    port = data.get('port')
+    action = data.get('action')
+
+    # Define the sketch name and path
+    SKETCH_NAME = 'generated_code'
+    sketch_dir = os.path.join(os.getcwd(), SKETCH_NAME)
+    if not os.path.exists(sketch_dir):
+        os.makedirs(sketch_dir)
+
+    # Save the code to the sketch file
+    code_file = os.path.join(sketch_dir, f'{SKETCH_NAME}.ino')
+    with open(code_file, 'w') as f:
+        f.write(code)
+
+    FQBN = 'deneyap:esp32:dyg_mpv10'  # Adjust based on your board
+
+    # Initialize message output
+    output_message = ""
+
+    try:
+        # Compile the code
+        if action in ['compile', 'compile_upload']:
+            compile_command = f'"{ARDUINO_CLI_PATH}" compile --fqbn {FQBN} "{sketch_dir}"'
+            compile_output = subprocess.check_output(compile_command, shell=True, stderr=subprocess.STDOUT).decode()
+            output_message += "Compilation Output:\n" + compile_output + "\n"
+
+        # Upload the code
+        if action in ['upload', 'compile_upload']:
+            upload_command = f'"{ARDUINO_CLI_PATH}" upload -p {port} --fqbn {FQBN} "{sketch_dir}"'
+            upload_output = subprocess.check_output(upload_command, shell=True, stderr=subprocess.STDOUT).decode()
+            output_message += "Upload Output:\n" + upload_output + "\n"
+
+        return jsonify({'message': output_message})
+
+    except subprocess.CalledProcessError as e:
+        error_message = e.output.decode()
+        return jsonify({'message': f'Error during {action.replace("_", " ")}.\n{error_message}'}), 500
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

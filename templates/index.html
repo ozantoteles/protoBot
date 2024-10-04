@@ -31,12 +31,17 @@
     <div class="mt-4">
         <label for="serial_ports">Select Serial Port:</label>
         <select id="serial_ports" class="form-control"></select>
-        <button id="upload_btn" class="btn btn-success mt-2">Compile & Upload Code</button>
+
+        <div class="mt-3">
+            <button id="compile_btn" class="btn btn-info">Compile Only</button>
+            <button id="upload_btn" class="btn btn-success">Upload Only</button>
+            <button id="compile_upload_btn" class="btn btn-primary">Compile & Upload</button>
+        </div>
     </div>
 
-    <!-- Upload status -->
-    <div id="upload_status" class="mt-4">
-        <!-- Upload status will appear here -->
+    <!-- Upload/Compile status -->
+    <div id="compile_upload_status" class="mt-4">
+        <!-- Compile/upload status will appear here -->
     </div>
 </div>
 
@@ -112,8 +117,23 @@ $(document).ready(function() {
         }
     });
 
-    // Upload code button click
+        // Compile-only button click
+    $('#compile_btn').click(function() {
+        performAction('compile');
+    });
+
+    // Upload-only button click
     $('#upload_btn').click(function() {
+        performAction('upload');
+    });
+
+    // Compile & Upload button click
+    $('#compile_upload_btn').click(function() {
+        performAction('compile_upload');
+    });
+
+    // Perform action (compile, upload, or both)
+    function performAction(action) {
         let code = $('#code_output').text();
         let port = $('#serial_ports').val();
         if (!code || code === 'Generating code...' || code === 'Error generating code.') {
@@ -124,24 +144,32 @@ $(document).ready(function() {
             alert('Please select a serial port.');
             return;
         }
-        $('#upload_status').text('Uploading code...');
+
+        $('#compile_upload_status').text(`${capitalize(action.replace('_', ' '))} in progress...`);
+
         $.ajax({
-            url: '/upload_code',
+            url: '/perform_action',
             type: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ 'code': code, 'port': port }),
+            data: JSON.stringify({ 'code': code, 'port': port, 'action': action }),
             success: function(response) {
-                $('#upload_status').text(response.message);
+                // Show the output of the compile/upload process
+                $('#compile_upload_status').text(response.message);
             },
             error: function(xhr) {
-                let errorMsg = 'Error uploading code.';
+                let errorMsg = 'Error during action.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg += '\n' + xhr.responseJSON.message;
                 }
-                $('#upload_status').text(errorMsg);
+                $('#compile_upload_status').text(errorMsg);
             }
         });
-    });
+    }
+
+    // Capitalize the first letter of the action
+    function capitalize(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
 });
 </script>
 </body>
