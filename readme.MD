@@ -1,6 +1,6 @@
 # ProtoBot: AI-Driven Code-Free Prototyping for Wearable Electronics
 
-![ProtoBot Logo](https://github.com/ozantoteles/protoBot/blob/master/images/protobot_log.jpg)
+![ProtoBot Logo](https://github.com/ozantoteles/protoBot/blob/master/images/protobot_logo.jpg)
 
 [![License](https://img.shields.io/github/license/ozantoteles/protobot)](LICENSE)  
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)  
