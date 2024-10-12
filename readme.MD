@@ -201,9 +201,11 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Authors
 
-- **Ihsan Ozan Yıldırım** - [@ihsanozan](https://github.com/ozantoteles)
-- **Cansu Çetin Er** - [@cansucetin](https://github.com/cans91)
-- **Ege Keskin** - [@egekeskin](https://github.com/ege621)
+- **Ihsan Ozan Yıldırım** - [@ozantoteles](https://github.com/ozantoteles)
+- **Cansu Çetin Er** - [@cans91](https://github.com/cans91)
+- **Ege Keskin** - [@ege621](https://github.com/ege621)
+- **Murat Kuşcu** - [mkuscu@ku.edu.tr](mailto:mkuscu@ku.edu.tr)
+- **Oğuzhan Özcan** - [oozcan@ku.edu.tr](mailto:oozcan@ku.edu.tr)
 
 See also the list of [contributors](https://github.com/ozantoteles/protobot/contributors) who participated in this project.
 
