@@ -217,7 +217,7 @@ See also the list of [contributors](https://github.com/ozantoteles/protobot/cont
 
 ## References
 
-- Yıldırım, I. O., Er, C. Ç., Keskin, E., Kuşcu, M., & Özcan, O. (2024). From Uncertainty to Innovation: Wearable Prototyping with ProtoBot. *ArXiv Preprint*. [arXiv:XXXX.XXXX](https://arxiv.org/abs/XXXX.XXXX)
+- Yıldırım, I. O., Er, C. Ç., Keskin, E., Kuşcu, M., & Özcan, O. (2024). From Uncertainty to Innovation: Wearable Prototyping with ProtoBot. *ArXiv Preprint*. [arXiv:2410.08340](https://arxiv.org/abs/2410.08340)
 - Buechley, L. (2008). Lilypad.
 - OpenAI API Reference. [OpenAI](https://beta.openai.com/docs/api-reference/)
 - Arduino CLI Documentation. [Arduino](https://arduino.github.io/arduino-cli/latest/)
